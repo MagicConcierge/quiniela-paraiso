@@ -232,6 +232,52 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 /* ── CONFETTI ── */
 #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
 
+/* ── HOY PANEL ── */
+.hoy-hero {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, var(--green) 100%);
+  border-radius: var(--radius); padding: 1.5rem 1.25rem; margin-bottom: 1rem;
+  text-align: center; position: relative; overflow: hidden;
+}
+.hoy-hero::before {
+  content: "⚽"; position: absolute; font-size: 8rem; opacity: 0.06;
+  top: -1rem; right: -1rem; line-height: 1;
+}
+.hoy-fecha {
+  font-size: 0.72rem; font-weight: 700; color: var(--gold); text-transform: uppercase;
+  letter-spacing: 1.5px; margin-bottom: 6px;
+}
+.hoy-count {
+  font-family: 'Oswald', sans-serif; font-size: 2rem; font-weight: 700; color: #fff; line-height: 1.1;
+}
+.hoy-count span { color: var(--gold); }
+.hoy-sub { font-size: 0.78rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+
+.aliento-card {
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+  padding: 1.1rem 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow);
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.aliento-icon { font-size: 1.8rem; flex-shrink: 0; margin-top: 2px; }
+.aliento-text { font-size: 0.88rem; font-weight: 500; color: var(--text); line-height: 1.5; }
+.aliento-text.loading-ai { color: var(--muted); font-style: italic; }
+
+.curiosidad-card {
+  background: linear-gradient(135deg, #fff8e7, #fffdf0); border-radius: var(--radius);
+  border: 1px solid #f0d98a; padding: 1.1rem 1.25rem; margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.curiosidad-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.curiosidad-icon { font-size: 1.2rem; }
+.curiosidad-label { font-size: 0.68rem; font-weight: 800; color: #8a6000; text-transform: uppercase; letter-spacing: 1px; }
+.curiosidad-text { font-size: 0.85rem; color: var(--text); line-height: 1.55; font-weight: 500; }
+.curiosidad-text.loading-ai { color: var(--muted); font-style: italic; }
+
+.hoy-no-partidos {
+  text-align: center; padding: 3rem 1rem; color: var(--muted);
+}
+.hoy-no-partidos .emoji { font-size: 3rem; margin-bottom: 0.75rem; }
+.hoy-no-partidos p { font-size: 0.9rem; font-weight: 500; }
+
 @media (max-width: 400px) {
   .preds-grid { grid-template-columns: repeat(3, 1fr); }
   .member-btn { font-size: 0.9rem; padding: 11px 6px; }
@@ -504,15 +550,26 @@ function buildTabs() {
   const tabsEl = document.getElementById("tabs");
   const panelsEl = document.getElementById("panels");
   tabsEl.innerHTML = ""; panelsEl.innerHTML = "";
-  PHASES.forEach((ph, i) => {
+
+  // HOY tab first
+  const hoyTab = document.createElement("button");
+  hoyTab.className = "tab active";
+  hoyTab.innerHTML = "🗓️ Hoy"; hoyTab.dataset.id = "hoy";
+  hoyTab.onclick = () => setTab("hoy");
+  tabsEl.appendChild(hoyTab);
+  const hoyPanel = document.createElement("div");
+  hoyPanel.className = "phase-panel active"; hoyPanel.id = "panel-hoy";
+  panelsEl.appendChild(hoyPanel);
+
+  PHASES.forEach((ph) => {
     const tab = document.createElement("button");
-    tab.className = "tab" + (i === 0 ? " active" : "");
+    tab.className = "tab";
     tab.innerHTML = ph.label; tab.dataset.id = ph.id;
     tab.onclick = () => setTab(ph.id);
     tabsEl.appendChild(tab);
 
     const panel = document.createElement("div");
-    panel.className = "phase-panel" + (i === 0 ? " active" : "");
+    panel.className = "phase-panel";
     panel.id = "panel-" + ph.id;
     panelsEl.appendChild(panel);
   });
@@ -559,6 +616,7 @@ function getAllTotals() {
 // ── RENDER ALL ──
 function renderAll() {
   renderScoreboard();
+  renderHoy();
   PHASES.forEach(ph => renderPhase(ph));
 }
 
@@ -671,6 +729,183 @@ function renderPhase(ph) {
   </div>`;
 
   panel.innerHTML = html;
+}
+
+// ── HOY ──────────────────────────────────────────────────────────────────────
+// Current date in Mexico City time (UTC-6)
+function getMexicoDateStr() {
+  const now = new Date();
+  const mxOffset = -6 * 60; // UTC-6
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const mxDate = new Date(utc + mxOffset * 60000);
+  const months = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  return `${months[mxDate.getMonth()]} ${mxDate.getDate()}`;
+}
+
+function getTodayMatches() {
+  const today = getMexicoDateStr();
+  const allMatches = [];
+  PHASES.forEach(ph => {
+    ph.matches.forEach((m, i) => {
+      if (m.f && m.f === today) {
+        allMatches.push({ ph, m, i });
+      }
+    });
+  });
+  return allMatches;
+}
+
+let aiAlreadyLoaded = false; // avoid re-fetching on every Firebase update
+
+async function renderHoy() {
+  const panel = document.getElementById("panel-hoy");
+  if (!panel) return;
+
+  const today = getMexicoDateStr();
+  const todayMatches = getTodayMatches();
+
+  if (todayMatches.length === 0) {
+    panel.innerHTML = `<div class="hoy-no-partidos">
+      <div class="emoji">😴</div>
+      <p>No hay partidos hoy (${today})</p>
+      <p style="margin-top:6px;font-size:0.78rem">¡Descansa y prepárate para mañana!</p>
+    </div>`;
+    aiAlreadyLoaded = false;
+    return;
+  }
+
+  // Hero
+  const teamNames = [...new Set(todayMatches.flatMap(({m}) => [m.l, m.v]))];
+  const heroHtml = `<div class="hoy-hero">
+    <div class="hoy-fecha">📅 ${today} · Hora México</div>
+    <div class="hoy-count"><span>${todayMatches.length}</span> partido${todayMatches.length>1?'s':''} hoy</div>
+    <div class="hoy-sub">${teamNames.slice(0,6).join(' · ')}${teamNames.length>6?' · ...':''}</div>
+  </div>`;
+
+  // Aliento placeholder
+  const alientoPh = `<div class="aliento-card" id="aliento-card">
+    <div class="aliento-icon">💬</div>
+    <div class="aliento-text loading-ai" id="aliento-text">Generando mensaje de la quiniela...</div>
+  </div>`;
+
+  // Curiosidad placeholder
+  const curioPh = `<div class="curiosidad-card" id="curiosidad-card">
+    <div class="curiosidad-header"><div class="curiosidad-icon">🧠</div><div class="curiosidad-label">¿Sabías que...?</div></div>
+    <div class="curiosidad-text loading-ai" id="curiosidad-text">Buscando dato curioso del día...</div>
+  </div>`;
+
+  // Match cards for today
+  let matchesHtml = "";
+  todayMatches.forEach(({ph, m, i}) => {
+    const mData = getMData(ph.id, i);
+    const real = mData.real || "";
+    const preds = mData.preds || {};
+    const predsHtml = MEMBERS.map(n => {
+      const v = preds[n] || "";
+      const isMe = n === currentUser;
+      const correct = real && v && real === v;
+      const pts = correct ? `+${PTS}` : "";
+      if (isMe) {
+        return `<div class="pred-item is-me ${correct?'correct':''}">
+          ${correct ? '<span class="correct-star">⭐</span>' : ''}
+          <div class="pred-name is-me">${n}</div>
+          <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i})">${v||"?"}</button>
+          <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
+        </div>`;
+      } else {
+        return `<div class="pred-item ${correct?'correct':''}">
+          ${correct ? '<span class="correct-star">⭐</span>' : ''}
+          <div class="pred-name">${n.substring(0,6)}</div>
+          <div class="pred-btn-big other ${v?'sel-'+v:''}" style="cursor:default;display:flex;align-items:center;justify-content:center;font-size:0.88rem;${!v?'opacity:0.25;border-style:dashed':''}">${v||"·"}</div>
+          <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
+        </div>`;
+      }
+    }).join("");
+    const rBtns = ["1","X","2"].map(val =>
+      `<button class="result-btn ${real===val?'active-'+val:''}" onclick="window.setReal('${ph.id}',${i},'${real===val?'':val}')">${val}</button>`
+    ).join("");
+    const gLabel = m.g ? `<span class="match-group-badge">Grupo ${m.g}</span>` : `<span class="match-group-badge">${ph.label.replace(/[^\w\s]/gi,'').trim()}</span>`;
+    matchesHtml += `<div class="match-card ${real?'has-result':''}">
+      <div class="match-header">${gLabel}<span class="match-time">⏰ ${m.h||''} hora MX</span></div>
+      <div class="teams-row">
+        <div class="team-block"><div class="team-flag">${flag(m.l)}</div><div class="team-name-big">${m.l}</div></div>
+        <div class="vs-bubble ${real?'has-result':''}">${real||"VS"}</div>
+        <div class="team-block"><div class="team-flag">${flag(m.v)}</div><div class="team-name-big">${m.v}</div></div>
+      </div>
+      <div class="result-row">
+        <div class="result-label">Resultado:</div>
+        <div class="result-btns">${rBtns}</div>
+        ${real ? `<span style="font-size:0.7rem;color:var(--green);font-weight:700;margin-left:4px">✓ Registrado</span>` : ''}
+      </div>
+      <div class="preds-area">
+        <div class="preds-title">Predicciones de la familia</div>
+        <div class="preds-grid">${predsHtml}</div>
+      </div>
+    </div>`;
+  });
+
+  panel.innerHTML = heroHtml + alientoPh + curioPh + matchesHtml;
+
+  // Call AI only once per day view
+  if (!aiAlreadyLoaded) {
+    aiAlreadyLoaded = true;
+    loadAIContent(todayMatches, today);
+  }
+}
+
+async function loadAIContent(todayMatches, today) {
+  const matchList = todayMatches.map(({m}) => `${m.l} vs ${m.v} (Grupo ${m.g||'—'}, ${m.h} hora MX)`).join(", ");
+  const memberName = currentUser;
+
+  // Aliento message
+  try {
+    const r1 = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 120,
+        system: "Eres el animador oficial de la Quiniela Paraíso, una quiniela familiar del Mundial 2026. Respondes siempre en español, con energía, calor familiar y entusiasmo. Sin emojis al inicio. Máximo 2 oraciones.",
+        messages: [{
+          role: "user",
+          content: `Los partidos de hoy ${today} son: ${matchList}. El usuario se llama ${memberName}. Escribe UN mensaje corto y cálido para animarlo a poner su pronóstico hoy. Menciona su nombre. Máximo 2 oraciones, tono familiar y divertido.`
+        }]
+      })
+    });
+    const d1 = await r1.json();
+    const txt1 = d1.content && d1.content[0] ? d1.content[0].text : "¡Hoy es tu día! Pon tus pronósticos y demuestra que sabes de fútbol.";
+    const el1 = document.getElementById("aliento-text");
+    if (el1) { el1.textContent = txt1; el1.classList.remove("loading-ai"); }
+  } catch(e) {
+    const el1 = document.getElementById("aliento-text");
+    if (el1) { el1.textContent = `¡${memberName}, hoy hay fútbol! No te quedes sin poner tu pronóstico. 🎯`; el1.classList.remove("loading-ai"); }
+  }
+
+  // Curiosidad / dato interesante
+  try {
+    // Pick 1-2 teams from today to focus on
+    const focusTeams = todayMatches.slice(0,2).map(({m}) => `${m.l} y ${m.v}`).join(", ");
+    const r2 = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 120,
+        system: "Eres un experto en historia del fútbol y estadísticas del Mundial. Respondes en español. Sin emojis. Máximo 2 oraciones.",
+        messages: [{
+          role: "user",
+          content: `Partidos del día en el Mundial 2026 (${today}): ${matchList}. Dame UN dato curioso, estadística interesante o hecho histórico sobre alguno de estos equipos: ${focusTeams}. Sencillo, sorprendente y fácil de entender para toda la familia. 2 oraciones máximo.`
+        }]
+      })
+    });
+    const d2 = await r2.json();
+    const txt2 = d2.content && d2.content[0] ? d2.content[0].text : "El Mundial 2026 es el primero en la historia con 48 selecciones y 3 países sede.";
+    const el2 = document.getElementById("curiosidad-text");
+    if (el2) { el2.textContent = txt2; el2.classList.remove("loading-ai"); }
+  } catch(e) {
+    const el2 = document.getElementById("curiosidad-text");
+    if (el2) { el2.textContent = "El Mundial 2026 es histórico: por primera vez se juega en 3 países y con 48 selecciones."; el2.classList.remove("loading-ai"); }
+  }
 }
 
 // ── ACTIONS ──
