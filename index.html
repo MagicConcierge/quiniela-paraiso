@@ -232,6 +232,58 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 /* ── CONFETTI ── */
 #confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
 
+/* ── MEDALLERO ── */
+.medallero-wrap { padding: 0.5rem 0 1.5rem; }
+.medallero-title {
+  text-align: center; font-family: 'Oswald', sans-serif; font-size: 1.1rem; font-weight: 700;
+  color: var(--navy); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1.5rem;
+}
+.podium {
+  display: flex; align-items: flex-end; justify-content: center; gap: 8px;
+  margin-bottom: 1.5rem; padding: 0 0.5rem;
+}
+.podium-slot { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; max-width: 130px; }
+.podium-avatar {
+  width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 1.5rem; font-weight: 800; color: #fff;
+  font-family: 'Oswald', sans-serif; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  border: 3px solid #fff;
+}
+.podium-name { font-size: 0.78rem; font-weight: 700; color: var(--text); text-align: center; }
+.podium-pts-label { font-family: 'Oswald', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--navy); }
+.podium-pts-sub { font-size: 0.62rem; color: var(--muted); margin-top: -4px; }
+.podium-base {
+  width: 100%; border-radius: 10px 10px 0 0; display: flex; align-items: center;
+  justify-content: center; font-family: 'Oswald', sans-serif; font-size: 2rem; font-weight: 700;
+}
+.podium-base-1 { height: 90px; background: linear-gradient(160deg,#f0a500,#ffd166); color: #fff; }
+.podium-base-2 { height: 65px; background: linear-gradient(160deg,#8e9eab,#bdc3c7); color: #fff; }
+.podium-base-3 { height: 45px; background: linear-gradient(160deg,#c97b44,#e6a96a); color: #fff; }
+
+.rest-list { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+.rest-item {
+  display: flex; align-items: center; gap: 12px; padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.rest-item:last-child { border-bottom: none; }
+.rest-rank { font-family: 'Oswald', sans-serif; font-size: 1rem; font-weight: 700; color: var(--muted); width: 22px; text-align: center; }
+.rest-name { flex: 1; font-size: 0.88rem; font-weight: 600; color: var(--text); }
+.rest-pts { font-family: 'Oswald', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--navy); }
+.rest-pts-lbl { font-size: 0.62rem; color: var(--muted); }
+.rest-item.is-me .rest-name { color: var(--navy); }
+.rest-item.is-me { background: #f0f4ff; }
+
+.medallero-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1rem;
+}
+.stat-card {
+  background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+  padding: 12px 14px; box-shadow: var(--shadow);
+}
+.stat-label { font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+.stat-value { font-family: 'Oswald', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--navy); margin-top: 2px; }
+.stat-sub { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+
 /* ── HOY PANEL ── */
 .hoy-hero {
   background: linear-gradient(135deg, var(--navy) 0%, var(--navy2) 60%, var(--green) 100%);
@@ -343,6 +395,23 @@ const firebaseConfig = {
 const db = getDatabase(initializeApp(firebaseConfig));
 const MEMBERS = ["Tito","Nonna","Amadita","Javier","Maria","Joaquin","Sofia","Rafa","Liz","Lucca","Liam"];
 const PTS = 3;
+
+// Quién puede capturar por quién (proxy)
+const PROXY = {
+  "Tito":   ["Nonna"],
+  "Rafa":   ["Liz","Lucca","Liam"],
+  "Javier": ["Amadita","Maria","Sofia","Joaquin"],
+};
+
+function getActiveUsers() {
+  // Returns all members the current user can act as
+  const extras = PROXY[currentUser] || [];
+  return [currentUser, ...extras];
+}
+
+function canActAs(name) {
+  return getActiveUsers().includes(name);
+}
 
 // Flags por país
 const FLAGS = {
@@ -561,6 +630,16 @@ function buildTabs() {
   hoyPanel.className = "phase-panel active"; hoyPanel.id = "panel-hoy";
   panelsEl.appendChild(hoyPanel);
 
+  // MEDALLERO tab
+  const medTab = document.createElement("button");
+  medTab.className = "tab";
+  medTab.innerHTML = "🏅 Medallero"; medTab.dataset.id = "medallero";
+  medTab.onclick = () => setTab("medallero");
+  tabsEl.appendChild(medTab);
+  const medPanel = document.createElement("div");
+  medPanel.className = "phase-panel"; medPanel.id = "panel-medallero";
+  panelsEl.appendChild(medPanel);
+
   PHASES.forEach((ph) => {
     const tab = document.createElement("button");
     tab.className = "tab";
@@ -617,6 +696,7 @@ function getAllTotals() {
 function renderAll() {
   renderScoreboard();
   renderHoy();
+  renderMedallero();
   PHASES.forEach(ph => renderPhase(ph));
 }
 
@@ -660,13 +740,15 @@ function renderPhase(ph) {
       const predsHtml = MEMBERS.map(n => {
         const v = preds[n] || "";
         const isMe = n === currentUser;
+        const isProxy = !isMe && canActAs(n);
+        const canEdit = isMe || isProxy;
         const correct = real && v && real === v;
         const pts = correct ? `+${PTS}` : "";
-        if (isMe) {
-          return `<div class="pred-item is-me ${correct?'correct':''}">
+        if (canEdit) {
+          return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
             ${correct ? '<span class="correct-star">⭐</span>' : ''}
-            <div class="pred-name is-me">${n}</div>
-            <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i})">${v||"?"}</button>
+            <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
+            <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i},'${n}')">${v||"?"}</button>
             <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
           </div>`;
         } else {
@@ -729,6 +811,95 @@ function renderPhase(ph) {
   </div>`;
 
   panel.innerHTML = html;
+}
+
+// ── MEDALLERO ─────────────────────────────────────────────────────────────────
+function renderMedallero() {
+  const panel = document.getElementById("panel-medallero");
+  if (!panel) return;
+
+  const totals = getAllTotals();
+  const sorted = totals.map((v, i) => ({v, i, name: MEMBERS[i]})).sort((a, b) => b.v - a.v);
+
+  // Total partidos jugados (con resultado)
+  let totalJugados = 0, totalAciertos = 0;
+  PHASES.forEach(ph => ph.matches.forEach((_, mi) => {
+    const m = getMData(ph.id, mi);
+    if (m.real) { totalJugados++; MEMBERS.forEach(n => { if (m.preds && m.preds[n] === m.real) totalAciertos++; }); }
+  }));
+
+  const avatarColors = ["#e74c3c","#3498db","#2ecc71","#9b59b6","#f39c12","#1abc9c","#e67e22","#e91e63","#00bcd4","#8bc34a","#ff5722"];
+  const getColor = (i) => avatarColors[i % avatarColors.length];
+  const getInitial = (name) => name[0].toUpperCase();
+
+  // Top 3 podium — order: 2nd, 1st, 3rd visually
+  const top = sorted.slice(0, 3);
+  const podiumOrder = top.length >= 3 ? [top[1], top[0], top[2]] : top.length === 2 ? [top[1], top[0]] : [top[0]];
+  const podiumBase = ["podium-base-2","podium-base-1","podium-base-3"];
+  const podiumPos = top.length >= 3 ? [1,0,2] : [1,0]; // index in top[] for each visual slot
+  const podiumNums = ["2","1","3"];
+  const podiumEmojis = ["🥈","🥇","🥉"];
+
+  const podiumHtml = podiumOrder.map((p, vi) => {
+    if (!p) return "";
+    const origPos = top.indexOf(p); // 0,1,2
+    const baseClass = top.length >= 3 ? podiumBase[vi] : podiumBase[vi];
+    const isMe = p.name === currentUser;
+    return `<div class="podium-slot">
+      <div class="podium-avatar" style="background:${getColor(p.i)};${isMe?'box-shadow:0 0 0 3px var(--gold),0 4px 16px rgba(0,0,0,0.25)':''}">${getInitial(p.name)}</div>
+      <div class="podium-name">${p.name}${isMe?' 👈':''}</div>
+      <div class="podium-pts-label">${p.v}</div>
+      <div class="podium-pts-sub">pts</div>
+      <div class="podium-base ${baseClass}">${podiumEmojis[vi]}</div>
+    </div>`;
+  }).join("");
+
+  // Rest (4th+)
+  const restHtml = sorted.slice(3).map((p, ri) => {
+    const isMe = p.name === currentUser;
+    return `<div class="rest-item ${isMe?'is-me':''}">
+      <div class="rest-rank">${ri+4}</div>
+      <div class="podium-avatar" style="background:${getColor(p.i)};width:34px;height:34px;font-size:0.9rem;flex-shrink:0">${getInitial(p.name)}</div>
+      <div class="rest-name">${p.name}${isMe?' 👈':''}</div>
+      <div style="text-align:right"><div class="rest-pts">${p.v}</div><div class="rest-pts-lbl">pts</div></div>
+    </div>`;
+  }).join("");
+
+  // My position
+  const myRank = sorted.findIndex(s => s.name === currentUser) + 1;
+  const myPts = totals[MEMBERS.indexOf(currentUser)];
+  const leader = sorted[0];
+  const diff = leader.v - myPts;
+
+  const statsHtml = `<div class="medallero-stats">
+    <div class="stat-card">
+      <div class="stat-label">Tu posición</div>
+      <div class="stat-value">#${myRank} de ${MEMBERS.length}</div>
+      <div class="stat-sub">${myPts} puntos acumulados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${diff === 0 ? '¡Vas primero! 🏆' : 'Al líder te faltan'}</div>
+      <div class="stat-value">${diff === 0 ? myPts+'pts' : diff+' pts'}</div>
+      <div class="stat-sub">${diff === 0 ? 'Sigue así' : `${leader.name} lleva ${leader.v} pts`}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Partidos jugados</div>
+      <div class="stat-value">${totalJugados}</div>
+      <div class="stat-sub">de ${PHASES.reduce((a,ph)=>a+ph.matches.length,0)} totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Aciertos familia</div>
+      <div class="stat-value">${totalAciertos}</div>
+      <div class="stat-sub">entre todos 🎯</div>
+    </div>
+  </div>`;
+
+  panel.innerHTML = `<div class="medallero-wrap">
+    <div class="medallero-title">🏅 Medallero Familiar</div>
+    <div class="podium">${podiumHtml}</div>
+    ${sorted.length > 3 ? `<div class="rest-list">${restHtml}</div>` : ''}
+    ${statsHtml}
+  </div>`;
 }
 
 // ── HOY ──────────────────────────────────────────────────────────────────────
@@ -803,13 +974,15 @@ async function renderHoy() {
     const predsHtml = MEMBERS.map(n => {
       const v = preds[n] || "";
       const isMe = n === currentUser;
+      const isProxy = !isMe && canActAs(n);
+      const canEdit = isMe || isProxy;
       const correct = real && v && real === v;
       const pts = correct ? `+${PTS}` : "";
-      if (isMe) {
-        return `<div class="pred-item is-me ${correct?'correct':''}">
+      if (canEdit) {
+        return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
           ${correct ? '<span class="correct-star">⭐</span>' : ''}
-          <div class="pred-name is-me">${n}</div>
-          <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i})">${v||"?"}</button>
+          <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
+          <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i},'${n}')">${v||"?"}</button>
           <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
         </div>`;
       } else {
@@ -909,19 +1082,23 @@ async function loadAIContent(todayMatches, today) {
 }
 
 // ── ACTIONS ──
-window.cyclePred = (phId, mi) => {
+window.cyclePred = (phId, mi, targetName) => {
+  const actAs = targetName || currentUser;
+  if (!canActAs(actAs)) return; // safety check
   const mData = getMData(phId, mi);
-  const cur = (mData.preds && mData.preds[currentUser]) || "";
-  const next = (["1","X","2",""].concat())[["1","X","2",""].indexOf(cur) + 1] ?? "1";
+  const cur = (mData.preds && mData.preds[actAs]) || "";
   const cycle = ["1","X","2",""];
   const nextVal = cycle[(cycle.indexOf(cur) + 1) % cycle.length];
 
   setSyncStatus("syncing");
-  set(ref(db, `quiniela/${phId}/${mi}/preds/${currentUser}`), nextVal || null)
+  set(ref(db, `quiniela/${phId}/${mi}/preds/${actAs}`), nextVal || null)
     .then(() => {
       setSyncStatus("online");
       const real = getMData(phId, mi).real;
-      if (real && nextVal && real === nextVal) { confetti(); showToast(`¡Acierto! 🎉 +${PTS} pts`); }
+      if (real && nextVal && real === nextVal) {
+        confetti();
+        showToast(actAs === currentUser ? `¡Acierto! 🎉 +${PTS} pts` : `¡${actAs} acertó! 🎉 +${PTS} pts`);
+      }
     }).catch(() => setSyncStatus("error"));
 };
 
