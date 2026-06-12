@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiniela Paraíso 🏆 Mundial 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0f2342;
+  --green: #1a5c38;
+  --gold: #f0a500;
+  --gold-light: #fef3d0;
+  --red: #c0392b;
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --border: #e2e4ec;
+  --text: #1a1e2e;
+  --muted: #6b7280;
+  --radius: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* LOGIN */
+#login-screen {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0f2342 0%, #1a5c38 100%);
+  padding: 1rem;
+}
+.login-card {
+  background: #fff; border-radius: 20px; padding: 2rem 1.5rem;
+  width: 100%; max-width: 360px; text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-trophy { font-size: 3rem; margin-bottom: 0.5rem; }
+.login-title { font-family: 'Oswald', sans-serif; font-size: 1.6rem; font-weight: 700; color: var(--navy); }
+.login-sub { font-size: 0.8rem; color: var(--muted); margin-bottom: 1.5rem; }
+.login-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+.member-btn {
+  padding: 10px 6px; border-radius: 10px; border: 2px solid var(--border);
+  font-size: 0.82rem; font-weight: 600; cursor: pointer; background: var(--bg);
+  color: var(--text); transition: all 0.15s;
+}
+.member-btn:hover { border-color: var(--navy); background: #eef2ff; }
+.member-btn.selected { border-color: var(--navy); background: var(--navy); color: #fff; }
+.login-btn {
+  width: 100%; padding: 12px; background: var(--gold); border: none; border-radius: 10px;
+  font-family: 'Oswald', sans-serif; font-size: 1rem; font-weight: 700; color: #fff;
+  cursor: pointer; transition: background 0.15s; margin-top: 4px;
+}
+.login-btn:hover { background: #d4900a; }
+.login-btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+/* APP */
+#app { display: none; }
+.app-header {
+  background: var(--navy); padding: 0.9rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.logo { font-family: 'Oswald', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--gold); line-height: 1.1; }
+.logo span { display: block; font-size: 0.72rem; font-weight: 500; color: rgba(255,255,255,0.55); letter-spacing: 1px; text-transform: uppercase; }
+.user-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.1); border-radius: 99px;
+  padding: 5px 12px; cursor: pointer;
+}
+.user-badge-name { font-size: 0.78rem; font-weight: 600; color: #fff; }
+.user-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; }
+
+/* SYNC STATUS */
+.sync-bar {
+  background: var(--navy); padding: 0 1.25rem 6px;
+  font-size: 0.68rem; color: rgba(255,255,255,0.45); text-align: right;
+}
+.sync-bar.syncing { color: var(--gold); }
+.sync-bar.error { color: #e74c3c; }
+
+/* SCOREBOARD */
+.scoreboard-wrap { background: var(--navy); padding: 0 1.25rem 1.25rem; overflow-x: auto; }
+.scoreboard {
+  display: flex; gap: 7px; min-width: max-content;
+}
+.score-card {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius); padding: 0.6rem 0.75rem; text-align: center;
+  min-width: 68px; position: relative; flex-shrink: 0;
+}
+.score-card.me { border-color: var(--gold); background: rgba(240,165,0,0.15); }
+.score-card.leader { border-color: #2ecc71; }
+.score-name { font-size: 0.65rem; font-weight: 600; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 0.3px; }
+.score-pts { font-family: 'Oswald', sans-serif; font-size: 1.7rem; font-weight: 700; color: #fff; line-height: 1.1; }
+.score-pts.me-pts { color: var(--gold); }
+.score-label { font-size: 0.58rem; color: rgba(255,255,255,0.35); }
+.medal { position: absolute; top: 3px; right: 5px; font-size: 0.75rem; }
+
+/* MAIN */
+.main { max-width: 860px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+.tabs {
+  display: flex; gap: 3px; margin-bottom: 1.25rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 99px; padding: 4px; flex-wrap: wrap;
+}
+.tab {
+  flex: 1; padding: 6px 4px; border-radius: 99px; font-size: 0.7rem;
+  font-weight: 600; cursor: pointer; border: none; background: transparent;
+  color: var(--muted); transition: all 0.15s; white-space: nowrap; text-align: center; min-width: 44px;
+}
+.tab.active { background: var(--navy); color: #fff; }
+.tab:hover:not(.active) { background: var(--bg); }
+.phase-panel { display: none; }
+.phase-panel.active { display: block; }
+
+/* MATCH TABLE */
+.group-label {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--muted); background: var(--bg); border: 1px solid var(--border);
+  border-radius: 99px; display: inline-block; padding: 2px 10px; margin: 6px 0 4px;
+}
+.table-wrap { overflow-x: auto; }
+.match-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; }
+.match-table thead th {
+  font-size: 0.65rem; font-weight: 600; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 2px 5px; text-align: center; white-space: nowrap;
+}
+.match-table thead th.left { text-align: left; }
+.match-row td {
+  background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  padding: 5px 5px; vertical-align: middle;
+}
+.match-row td:first-child { border-left: 1px solid var(--border); border-radius: 8px 0 0 8px; }
+.match-row td:last-child { border-right: 1px solid var(--border); border-radius: 0 8px 8px 0; }
+.match-row:hover td { background: #f8f9ff; }
+.match-num { font-size: 0.65rem; color: var(--muted); text-align: center; width: 24px; }
+.team-cell { font-size: 0.76rem; font-weight: 500; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+.team-cell.away { text-align: right; }
+.result-sel {
+  width: 52px; font-size: 0.75rem; font-weight: 700; text-align: center;
+  border: 1.5px solid var(--border); border-radius: 7px; padding: 4px 2px;
+  background: #fffde7; color: var(--red); cursor: pointer;
+  appearance: none; -webkit-appearance: none; font-family: 'Inter', sans-serif;
+  display: block; margin: 0 auto;
+}
+.result-sel.set { background: var(--green); color: #fff; border-color: var(--green); }
+.result-sel:disabled { opacity: 0.5; cursor: not-allowed; }
+.pred-btn {
+  width: 40px; height: 27px; font-size: 0.74rem; font-weight: 700; border-radius: 6px;
+  border: 1.5px solid var(--border); cursor: pointer; background: var(--bg); color: var(--muted);
+  transition: all 0.12s; font-family: 'Inter', sans-serif; display: block; margin: 0 auto;
+}
+.pred-btn:hover { background: #e8ecf5; }
+.pred-btn.sel-1 { background: var(--green); color: #fff; border-color: var(--green); }
+.pred-btn.sel-X { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pred-btn.sel-2 { background: var(--red); color: #fff; border-color: var(--red); }
+.pred-btn.correct { outline: 2px solid var(--gold); outline-offset: 1px; }
+.pred-btn.other { opacity: 0.55; cursor: default; }
+.pts-cell { font-family: 'Oswald', sans-serif; font-size: 0.95rem; font-weight: 700; text-align: center; color: var(--muted); width: 30px; }
+.pts-cell.earned { color: var(--green); }
+
+/* PHASE TOTALS */
+.phase-totals {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 4px 0;
+  border-top: 1px solid var(--border); margin-top: 8px;
+}
+.phase-total-item { text-align: center; min-width: 50px; }
+.phase-total-name { font-size: 0.65rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+.phase-total-pts { font-family: 'Oswald', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--navy); }
+.phase-total-item.me-total .phase-total-pts { color: var(--gold); }
+
+/* LEGEND */
+.legend { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1rem; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; color: var(--muted); font-weight: 500; }
+.legend-dot { width: 13px; height: 13px; border-radius: 4px; flex-shrink: 0; }
+
+/* LOADING */
+#loading {
+  position: fixed; inset: 0; background: var(--navy); display: flex;
+  flex-direction: column; align-items: center; justify-content: center; z-index: 999;
+}
+.loading-trophy { font-size: 3rem; animation: bounce 0.8s infinite alternate; }
+.loading-text { color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 1rem; }
+@keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+/* CONFETTI */
+#confetti-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+  background: var(--navy); color: #fff; padding: 10px 20px; border-radius: 99px;
+  font-size: 0.8rem; font-weight: 600; z-index: 9998; opacity: 0;
+  transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+
+@media (max-width: 600px) {
+  .scoreboard-wrap { padding: 0 0.75rem 1rem; }
+  .score-card { min-width: 58px; padding: 0.5rem; }
+  .score-pts { font-size: 1.4rem; }
+  .pred-btn { width: 34px; height: 25px; font-size: 0.68rem; }
+  .result-sel { width: 44px; }
+  .team-cell { max-width: 80px; font-size: 0.7rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-trophy">⚽</div>
+  <div class="loading-text">Conectando con Firebase...</div>
+</div>
+
+<canvas id="confetti-canvas"></canvas>
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-trophy">🏆</div>
+    <div class="login-title">Quiniela Paraíso</div>
+    <div class="login-sub">Mundial 2026 · ¿Quién eres?</div>
+    <div class="login-grid" id="member-grid"></div>
+    <button class="login-btn" id="login-btn" disabled onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="app-header">
+    <div class="header-left">
+      <div>⚽</div>
+      <div class="logo">Quiniela Paraíso <span>Mundial 2026</span></div>
+    </div>
+    <div class="user-badge" onclick="logout()">
+      <div class="user-badge-dot"></div>
+      <div class="user-badge-name" id="user-badge-name">—</div>
+      <div style="font-size:0.65rem;color:rgba(255,255,255,0.4)">Cambiar</div>
+    </div>
+  </header>
+  <div class="sync-bar" id="sync-bar">● En línea</div>
+  <div class="scoreboard-wrap">
+    <div class="scoreboard" id="scoreboard"></div>
+  </div>
+  <main class="main">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>1 = Local gana</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--navy)"></div>X = Empate</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>2 = Visitante gana</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Acierto = 3 pts</div>
+    </div>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div id="panels"></div>
+  </main>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBkdNAtR2dFBuyk9HzWEz7aTuJ5AOvasG0",
+  authDomain: "quiniela-paraiso.firebaseapp.com",
+  databaseURL: "https://quiniela-paraiso-default-rtdb.firebaseio.com",
+  projectId: "quiniela-paraiso",
+  storageBucket: "quiniela-paraiso.firebasestorage.app",
+  messagingSenderId: "952431424060",
+  appId: "1:952431424060:web:d33fcc05a55c7f530fc939"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getDatabase(fbApp);
+
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+const MEMBERS = ["Tito","Nonna","Amadita","Javier","Maria","Joaquin","Sofia","Rafa","Liz","Lucca","Liam"];
+const PTS = 3;
+
+const GRUPOS_RAW = [
+  {g:"A", m:[["México","Sudáfrica"],["Corea del Sur","R. Checa"],["R. Checa","Sudáfrica"],["México","Corea del Sur"],["R. Checa","México"],["Sudáfrica","Corea del Sur"]]},
+  {g:"B", m:[["Canadá","Bosnia-Herz."],["Qatar","Suiza"],["Suiza","Bosnia-Herz."],["Canadá","Qatar"],["Suiza","Canadá"],["Bosnia-Herz.","Qatar"]]},
+  {g:"C", m:[["Brasil","Marruecos"],["Haití","Escocia"],["Escocia","Marruecos"],["Brasil","Haití"],["Escocia","Brasil"],["Marruecos","Haití"]]},
+  {g:"D", m:[["Estados Unidos","Paraguay"],["Australia","Turquía"],["EE.UU.","Australia"],["Turquía","Paraguay"],["Turquía","EE.UU."],["Paraguay","Australia"]]},
+  {g:"E", m:[["Alemania","Curazao"],["C. de Marfil","Ecuador"],["Alemania","C. de Marfil"],["Ecuador","Curazao"],["Ecuador","Alemania"],["Curazao","C. de Marfil"]]},
+  {g:"F", m:[["P. Bajos","Japón"],["Suecia","Túnez"],["P. Bajos","Suecia"],["Túnez","Japón"],["Túnez","P. Bajos"],["Japón","Suecia"]]},
+  {g:"G", m:[["Bélgica","Egipto"],["Irán","Nueva Zelanda"],["Bélgica","Irán"],["N. Zelanda","Egipto"],["N. Zelanda","Bélgica"],["Egipto","Irán"]]},
+  {g:"H", m:[["España","Cabo Verde"],["Arabia S.","Uruguay"],["España","Arabia S."],["Uruguay","Cabo Verde"],["Uruguay","España"],["Cabo Verde","Arabia S."]]},
+  {g:"I", m:[["Francia","Senegal"],["Irak","Noruega"],["Francia","Irak"],["Noruega","Senegal"],["Noruega","Francia"],["Senegal","Irak"]]},
+  {g:"J", m:[["Argentina","Argelia"],["Austria","Jordania"],["Argentina","Austria"],["Jordania","Argelia"],["Jordania","Argentina"],["Argelia","Austria"]]},
+  {g:"K", m:[["Portugal","RD Congo"],["Uzbekistán","Colombia"],["Portugal","Uzbekistán"],["Colombia","RD Congo"],["Colombia","Portugal"],["RD Congo","Uzbekistán"]]},
+  {g:"L", m:[["Inglaterra","Croacia"],["Ghana","Panamá"],["Inglaterra","Ghana"],["Panamá","Croacia"],["Panamá","Inglaterra"],["Croacia","Ghana"]]},
+];
+
+const gruposMatches = [], gruposLabels = [];
+GRUPOS_RAW.forEach(gr => gr.m.forEach(m => { gruposMatches.push(m); gruposLabels.push(gr.g); }));
+
+const PHASES = [
+  { id:"grupos",  label:"Grupos",       matches: gruposMatches, labels: gruposLabels },
+  { id:"r32",     label:"Ronda 32",     matches: Array.from({length:16},(_,i)=>[`R32-${i*2+1}`,`R32-${i*2+2}`]) },
+  { id:"octavos", label:"Octavos",      matches: Array.from({length:8},(_,i)=>[`Oct.${i*2+1}`,`Oct.${i*2+2}`]) },
+  { id:"cuartos", label:"Cuartos",      matches: [["Oct.1","Oct.2"],["Oct.3","Oct.4"],["Oct.5","Oct.6"],["Oct.7","Oct.8"]] },
+  { id:"semis",   label:"Semis",        matches: [["Cto.1","Cto.2"],["Cto.3","Cto.4"]] },
+  { id:"final",   label:"🏆 Final",     matches: [["Semifinal 1","Semifinal 2"]] },
+];
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let currentUser = null;
+let dbState = {};   // { phaseId: [ { real, preds: {nombre: val} } ] }
+let listeners = [];
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+window.doLogin = function() {
+  const selected = document.querySelector(".member-btn.selected");
+  if (!selected) return;
+  currentUser = selected.dataset.name;
+  localStorage.setItem("qp_user", currentUser);
+  showApp();
+};
+
+window.logout = function() {
+  localStorage.removeItem("qp_user");
+  currentUser = null;
+  listeners.forEach(u => u());
+  listeners = [];
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+};
+
+function buildLoginScreen() {
+  const grid = document.getElementById("member-grid");
+  grid.innerHTML = MEMBERS.map(m =>
+    `<button class="member-btn" data-name="${m}" onclick="selectMember(this)">${m}</button>`
+  ).join("");
+}
+
+window.selectMember = function(btn) {
+  document.querySelectorAll(".member-btn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  document.getElementById("login-btn").disabled = false;
+};
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+function showApp() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("user-badge-name").textContent = currentUser;
+  buildTabs();
+  subscribeToDb();
+}
+
+function buildTabs() {
+  const tabsEl = document.getElementById("tabs");
+  const panelsEl = document.getElementById("panels");
+  tabsEl.innerHTML = "";
+  panelsEl.innerHTML = "";
+
+  PHASES.forEach((ph, i) => {
+    const tab = document.createElement("button");
+    tab.className = "tab" + (i === 0 ? " active" : "");
+    tab.innerHTML = ph.label;
+    tab.dataset.id = ph.id;
+    tab.setAttribute("role", "tab");
+    tab.onclick = () => setTab(ph.id);
+    tabsEl.appendChild(tab);
+
+    const panel = document.createElement("div");
+    panel.className = "phase-panel" + (i === 0 ? " active" : "");
+    panel.id = "panel-" + ph.id;
+    panelsEl.appendChild(panel);
+  });
+}
+
+function setTab(id) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.id === id));
+  document.querySelectorAll(".phase-panel").forEach(p => p.classList.toggle("active", p.id === "panel-" + id));
+}
+
+// ─── FIREBASE ─────────────────────────────────────────────────────────────────
+function subscribeToDb() {
+  const dbRef = ref(db, "quiniela");
+  const unsub = onValue(dbRef, snap => {
+    const raw = snap.val() || {};
+    dbState = raw;
+    renderAll();
+    setSyncStatus("online");
+  }, err => {
+    console.error(err);
+    setSyncStatus("error");
+  });
+  listeners.push(unsub);
+}
+
+function setSyncStatus(status) {
+  const bar = document.getElementById("sync-bar");
+  if (status === "online")  { bar.textContent = "● En línea · cambios en tiempo real"; bar.className = "sync-bar"; }
+  if (status === "syncing") { bar.textContent = "↑ Guardando..."; bar.className = "sync-bar syncing"; }
+  if (status === "error")   { bar.textContent = "✕ Sin conexión · reintentando..."; bar.className = "sync-bar error"; }
+}
+
+function getMatchData(phId, mi) {
+  return (dbState[phId] && dbState[phId][mi]) ? dbState[phId][mi] : { real: "", preds: {} };
+}
+
+// ─── PUNTOS ───────────────────────────────────────────────────────────────────
+function getTotals() {
+  return MEMBERS.map(name =>
+    PHASES.reduce((acc, ph) =>
+      acc + ph.matches.reduce((a, _, mi) => {
+        const m = getMatchData(ph.id, mi);
+        return a + (m.real && m.preds && m.preds[name] && m.real === m.preds[name] ? PTS : 0);
+      }, 0), 0)
+  );
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderScoreboard();
+  PHASES.forEach(ph => renderPhase(ph));
+}
+
+function renderScoreboard() {
+  const totals = getTotals();
+  const max = Math.max(...totals);
+  const sorted = totals.map((v, i) => ({ v, i })).sort((a, b) => b.v - a.v);
+  const medals = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","1️⃣1️⃣"];
+  document.getElementById("scoreboard").innerHTML = sorted.map(({ v, i }) => {
+    const name = MEMBERS[i];
+    const isMe = name === currentUser;
+    const isLeader = v === max && max > 0;
+    const rank = sorted.findIndex(x => x.i === i);
+    return `<div class="score-card ${isMe ? 'me' : ''} ${isLeader && !isMe ? 'leader' : ''}">
+      <span class="medal">${medals[rank]}</span>
+      <div class="score-name">${name}</div>
+      <div class="score-pts ${isMe ? 'me-pts' : ''}">${v}</div>
+      <div class="score-label">pts</div>
+    </div>`;
+  }).join("");
+}
+
+function renderPhase(ph) {
+  const panel = document.getElementById("panel-" + ph.id);
+  if (!panel) return;
+  const isGrupos = ph.id === "grupos";
+
+  // Build compact header: #, Local, vs, Visit, Real, [member cols]
+  let html = `<div class="table-wrap"><table class="match-table"><thead><tr>
+    <th class="match-num">#</th>
+    <th class="left" style="min-width:80px">Local</th>
+    <th style="width:20px"></th>
+    <th style="min-width:80px">Visitante</th>
+    <th>Real</th>
+    ${MEMBERS.map(m => `<th style="min-width:42px;font-size:0.6rem">${m.substring(0,5)}</th>`).join("")}
+  </tr></thead><tbody>`;
+
+  let currentGroup = null;
+  ph.matches.forEach((teams, mi) => {
+    const [local, vis] = teams;
+    const mData = getMatchData(ph.id, mi);
+    const real = mData.real || "";
+    const preds = mData.preds || {};
+
+    if (isGrupos && ph.labels && ph.labels[mi] !== currentGroup) {
+      currentGroup = ph.labels[mi];
+      html += `<tr><td colspan="${5 + MEMBERS.length}" style="padding:6px 4px 2px">
+        <span class="group-label">Grupo ${currentGroup}</span></td></tr>`;
+    }
+
+    const predCells = MEMBERS.map(name => {
+      const v = preds[name] || "";
+      const isMe = name === currentUser;
+      const ok = real && v && real === v;
+      const pts = ok ? PTS : "";
+
+      if (isMe) {
+        return `<td><button class="pred-btn ${v ? 'sel-' + v : ''} ${ok ? 'correct' : ''}"
+          onclick="window.cyclePred('${ph.id}',${mi})">${v || "?"}</button></td>`;
+      } else {
+        // Show other people's predictions only if they made one
+        return `<td><div class="pred-btn other ${v ? 'sel-' + v : ''}"
+          style="cursor:default;display:flex;align-items:center;justify-content:center;${!v ? 'opacity:0.2' : ''}">${v || "·"}</div></td>`;
+      }
+    }).join("");
+
+    const canSetReal = true; // any member can set real
+    html += `<tr class="match-row">
+      <td class="match-num">${mi + 1}</td>
+      <td class="team-cell" title="${local}">${local}</td>
+      <td style="font-size:0.65rem;color:var(--muted);text-align:center">vs</td>
+      <td class="team-cell away" title="${vis}">${vis}</td>
+      <td><select class="result-sel ${real ? 'set' : ''}" onchange="window.setReal('${ph.id}',${mi},this.value)">
+        <option value="">—</option>
+        <option value="1" ${real==="1"?"selected":""}>1</option>
+        <option value="X" ${real==="X"?"selected":""}>X</option>
+        <option value="2" ${real==="2"?"selected":""}>2</option>
+      </select></td>
+      ${predCells}
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+
+  // Phase totals
+  const phasePts = MEMBERS.map(name =>
+    ph.matches.reduce((a, _, mi) => {
+      const m = getMatchData(ph.id, mi);
+      return a + (m.real && m.preds && m.preds[name] && m.real === m.preds[name] ? PTS : 0);
+    }, 0)
+  );
+  html += `<div class="phase-totals">${MEMBERS.map((name, i) => `
+    <div class="phase-total-item ${name === currentUser ? 'me-total' : ''}">
+      <div class="phase-total-name">${name.substring(0,5)}</div>
+      <div class="phase-total-pts">${phasePts[i]}</div>
+    </div>`).join("")}</div>`;
+
+  panel.innerHTML = html;
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────────
+window.cyclePred = function(phId, mi) {
+  const mData = getMatchData(phId, mi);
+  const preds = mData.preds || {};
+  const cur = preds[currentUser] || "";
+  const cycle = ["1","X","2",""];
+  const next = cycle[(cycle.indexOf(cur) + 1) % cycle.length];
+
+  setSyncStatus("syncing");
+  const path = `quiniela/${phId}/${mi}/preds/${currentUser}`;
+  set(ref(db, path), next || null).then(() => {
+    setSyncStatus("online");
+    const real = mData.real;
+    if (real && next && real === next) { confetti(); showToast("¡Acierto! 🎉 +3 puntos"); }
+  }).catch(() => setSyncStatus("error"));
+};
+
+window.setReal = function(phId, mi, val) {
+  setSyncStatus("syncing");
+  const path = `quiniela/${phId}/${mi}/real`;
+  set(ref(db, path), val || null).then(() => {
+    setSyncStatus("online");
+    // Check if anyone got it right
+    const mData = getMatchData(phId, mi);
+    const winners = MEMBERS.filter(n => mData.preds && mData.preds[n] === val);
+    if (val && winners.length > 0) {
+      confetti();
+      showToast(`¡${winners.join(", ")} acertó! 🎉`);
+    }
+  }).catch(() => setSyncStatus("error"));
+};
+
+// ─── CONFETTI ─────────────────────────────────────────────────────────────────
+function confetti() {
+  const canvas = document.getElementById("confetti-canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ["#f0a500","#1a5c38","#0f2342","#c0392b","#27ae60","#3498db","#f39c12","#9b59b6"];
+  const pieces = Array.from({length: 120}, () => ({
+    x: Math.random() * canvas.width, y: -20,
+    vx: (Math.random() - 0.5) * 5, vy: Math.random() * 5 + 2,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    w: Math.random() * 9 + 4, h: Math.random() * 6 + 3,
+    rot: Math.random() * 360, vr: (Math.random() - 0.5) * 10,
+  }));
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.vy += 0.07;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore();
+    });
+    frame++;
+    if (frame < 180) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  draw();
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildLoginScreen();
+
+// Check if user already logged in
+const savedUser = localStorage.getItem("qp_user");
+document.getElementById("loading").style.display = "none";
+
+if (savedUser && MEMBERS.includes(savedUser)) {
+  currentUser = savedUser;
+  document.getElementById("login-screen").style.display = "none";
+  showApp();
+} else {
+  document.getElementById("login-screen").style.display = "flex";
+}
+</script>
+</body>
+</html>
