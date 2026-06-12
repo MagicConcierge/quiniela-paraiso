@@ -151,7 +151,7 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 /* Teams row */
 .teams-row {
   display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
-  padding: 10px 14px 8px;
+  padding: 10px 14px 4px;
 }
 .team-block { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .team-flag { font-size: 1.6rem; line-height: 1; }
@@ -161,23 +161,29 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
   display: flex; align-items: center; justify-content: center;
   font-size: 0.65rem; font-weight: 800; color: var(--muted); flex-shrink: 0;
 }
-.vs-bubble.has-result { background: var(--green); border-color: var(--green); color: #fff; font-size: 0.9rem; font-weight: 900; }
+.vs-bubble.has-result { background: var(--green); border-color: var(--green); color: #fff; font-size: 0.85rem; font-weight: 900; }
 
-/* Result selector */
+/* Result buttons integrated under teams */
 .result-row {
-  padding: 0 14px 10px; display: flex; align-items: center; gap: 8px;
+  display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px;
+  padding: 6px 14px 12px; align-items: center;
 }
-.result-label { font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-.result-btns { display: flex; gap: 6px; }
 .result-btn {
-  padding: 7px 16px; border-radius: 8px; border: 2px solid var(--border);
-  font-size: 0.85rem; font-weight: 800; cursor: pointer; background: var(--bg);
-  color: var(--muted); transition: all 0.12s; font-family: 'Inter', sans-serif;
+  width: 100%; padding: 9px 4px; border-radius: 10px; border: 2px solid var(--border);
+  font-size: 0.72rem; font-weight: 700; cursor: pointer; background: var(--bg);
+  color: var(--muted); transition: all 0.12s; font-family: 'Inter', sans-serif; text-align: center;
 }
 .result-btn:hover { border-color: var(--navy); background: #eef2ff; }
 .result-btn.active-1 { background: var(--green); border-color: var(--green); color: #fff; }
 .result-btn.active-X { background: var(--navy); border-color: var(--navy); color: #fff; }
 .result-btn.active-2 { background: var(--red); border-color: var(--red); color: #fff; }
+.result-btn-empate {
+  width: 52px; flex-shrink: 0; padding: 9px 4px; border-radius: 10px; border: 2px solid var(--border);
+  font-size: 0.65rem; font-weight: 700; cursor: pointer; background: var(--bg);
+  color: var(--muted); transition: all 0.12s; font-family: 'Inter', sans-serif; text-align: center;
+}
+.result-btn-empate:hover { border-color: var(--navy); background: #eef2ff; }
+.result-btn-empate.active-X { background: var(--navy); border-color: var(--navy); color: #fff; }
 
 /* Predictions grid */
 .preds-area { border-top: 1px solid var(--border); padding: 10px 14px 12px; background: #fafbff; }
@@ -193,10 +199,13 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 .pred-name { font-size: 0.65rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
 .pred-name.is-me { color: var(--navy); }
 .pred-btn-big {
-  width: 100%; padding: 7px 4px; border-radius: 8px; border: 2px solid var(--border);
-  font-size: 0.9rem; font-weight: 800; cursor: pointer; background: var(--bg);
-  color: var(--muted); transition: all 0.12s; font-family: 'Inter', sans-serif; text-align: center;
+  width: 100%; padding: 6px 4px; border-radius: 8px; border: 2px solid var(--border);
+  font-size: 0.75rem; font-weight: 800; cursor: pointer; background: var(--bg);
+  color: var(--muted); transition: all 0.12s; font-family: 'Inter', sans-serif;
+  text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2;
 }
+.pred-btn-big .pb-icon { font-size: 1rem; line-height: 1; }
+.pred-btn-big .pb-label { font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2px; }
 .pred-btn-big.sel-1 { background: var(--green); border-color: var(--green); color: #fff; }
 .pred-btn-big.sel-X { background: var(--navy); border-color: var(--navy); color: #fff; }
 .pred-btn-big.sel-2 { background: var(--red); border-color: var(--red); color: #fff; }
@@ -411,6 +420,33 @@ function getActiveUsers() {
 
 function canActAs(name) {
   return getActiveUsers().includes(name);
+}
+
+// Build result buttons: [Local] [Empate] [Visitante] aligned under teams
+function buildResultBtns(phId, mi, real, localTeam, visTeam) {
+  const tog = (v) => real === v ? '' : v; // toggle off if already selected
+  return `
+    <button class="result-btn ${real==='1'?'active-1':''}" onclick="window.setReal('${phId}',${mi},'${tog('1')}')">${flag(localTeam)} Gana</button>
+    <button class="result-btn-empate ${real==='X'?'active-X':''}" onclick="window.setReal('${phId}',${mi},'${tog('X')}')">🤝<br>Empate</button>
+    <button class="result-btn ${real==='2'?'active-2':''}" onclick="window.setReal('${phId}',${mi},'${tog('2')}')">${flag(visTeam)} Gana</button>
+  `;
+}
+
+// Build pred button with emoji+label
+function buildPredBtn(phId, mi, name, val, isEditable) {
+  const display = {
+    "1":  { icon:"🏠", label:"Local" },
+    "X":  { icon:"🤝", label:"Empate" },
+    "2":  { icon:"✈️", label:"Visita" },
+    "":   { icon:"❓", label:"Elegir" },
+  };
+  const d = display[val] || display[""];
+  const inner = `<span class="pb-icon">${d.icon}</span><span class="pb-label">${d.label}</span>`;
+  if (isEditable) {
+    return `<button class="pred-btn-big ${val?'sel-'+val:''}" onclick="window.cyclePred('${phId}',${mi},'${name}')">${inner}</button>`;
+  } else {
+    return `<div class="pred-btn-big other ${val?'sel-'+val:''}" style="cursor:default;${!val?'opacity:0.25;border-style:dashed':''}">${val ? inner : '<span class="pb-icon">·</span>'}</div>`;
+  }
 }
 
 // Flags por país
@@ -744,27 +780,16 @@ function renderPhase(ph) {
         const canEdit = isMe || isProxy;
         const correct = real && v && real === v;
         const pts = correct ? `+${PTS}` : "";
-        if (canEdit) {
-          return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
-            ${correct ? '<span class="correct-star">⭐</span>' : ''}
-            <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
-            <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i},'${n}')">${v||"?"}</button>
-            <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
-          </div>`;
-        } else {
-          return `<div class="pred-item ${correct?'correct':''}">
-            ${correct ? '<span class="correct-star">⭐</span>' : ''}
-            <div class="pred-name">${n.substring(0,6)}</div>
-            <div class="pred-btn-big other ${v?'sel-'+v:''}" style="cursor:default;display:flex;align-items:center;justify-content:center;font-size:0.88rem;${!v?'opacity:0.25;border-style:dashed':''}">${v||"·"}</div>
-            <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
-          </div>`;
-        }
+        return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
+          ${correct ? '<span class="correct-star">⭐</span>' : ''}
+          <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
+          ${buildPredBtn(ph.id, i, n, v, canEdit)}
+          <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
+        </div>`;
       }).join("");
 
-      // Result buttons
-      const rBtns = ["1","X","2"].map(val =>
-        `<button class="result-btn ${real===val?'active-'+val:''}" onclick="window.setReal('${ph.id}',${i},'${real===val?'':val}')">${val}</button>`
-      ).join("");
+      // Result buttons with team names
+      const rBtns = buildResultBtns(ph.id, i, real, m.l, m.v);
 
       const gLabel = m.g ? `<span class="match-group-badge">Grupo ${m.g}</span>` : `<span class="match-group-badge">${ph.label.replace(/[^\w\s]/gi,'').trim()}</span>`;
 
@@ -778,17 +803,13 @@ function renderPhase(ph) {
             <div class="team-flag">${flag(m.l)}</div>
             <div class="team-name-big">${m.l}</div>
           </div>
-          <div class="vs-bubble ${real?'has-result':''}">${real||"VS"}</div>
+          <div class="vs-bubble ${real?'has-result':''}">${real==='X'?'🤝':real||'VS'}</div>
           <div class="team-block">
             <div class="team-flag">${flag(m.v)}</div>
             <div class="team-name-big">${m.v}</div>
           </div>
         </div>
-        <div class="result-row">
-          <div class="result-label">Resultado:</div>
-          <div class="result-btns">${rBtns}</div>
-          ${real ? `<span style="font-size:0.7rem;color:var(--green);font-weight:700;margin-left:4px">✓ Registrado</span>` : ''}
-        </div>
+        <div class="result-row">${rBtns}</div>
         <div class="preds-area">
           <div class="preds-title">Predicciones de la familia</div>
           <div class="preds-grid">${predsHtml}</div>
@@ -978,38 +999,23 @@ async function renderHoy() {
       const canEdit = isMe || isProxy;
       const correct = real && v && real === v;
       const pts = correct ? `+${PTS}` : "";
-      if (canEdit) {
-        return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
-          ${correct ? '<span class="correct-star">⭐</span>' : ''}
-          <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
-          <button class="pred-btn-big ${v?'sel-'+v:''}" onclick="window.cyclePred('${ph.id}',${i},'${n}')">${v||"?"}</button>
-          <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
-        </div>`;
-      } else {
-        return `<div class="pred-item ${correct?'correct':''}">
-          ${correct ? '<span class="correct-star">⭐</span>' : ''}
-          <div class="pred-name">${n.substring(0,6)}</div>
-          <div class="pred-btn-big other ${v?'sel-'+v:''}" style="cursor:default;display:flex;align-items:center;justify-content:center;font-size:0.88rem;${!v?'opacity:0.25;border-style:dashed':''}">${v||"·"}</div>
-          <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
-        </div>`;
-      }
+      return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
+        ${correct ? '<span class="correct-star">⭐</span>' : ''}
+        <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
+        ${buildPredBtn(ph.id, i, n, v, canEdit)}
+        <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
+      </div>`;
     }).join("");
-    const rBtns = ["1","X","2"].map(val =>
-      `<button class="result-btn ${real===val?'active-'+val:''}" onclick="window.setReal('${ph.id}',${i},'${real===val?'':val}')">${val}</button>`
-    ).join("");
+    const rBtns = buildResultBtns(ph.id, i, real, m.l, m.v);
     const gLabel = m.g ? `<span class="match-group-badge">Grupo ${m.g}</span>` : `<span class="match-group-badge">${ph.label.replace(/[^\w\s]/gi,'').trim()}</span>`;
     matchesHtml += `<div class="match-card ${real?'has-result':''}">
       <div class="match-header">${gLabel}<span class="match-time">⏰ ${m.h||''} hora MX</span></div>
       <div class="teams-row">
         <div class="team-block"><div class="team-flag">${flag(m.l)}</div><div class="team-name-big">${m.l}</div></div>
-        <div class="vs-bubble ${real?'has-result':''}">${real||"VS"}</div>
+        <div class="vs-bubble ${real?'has-result':''}">${real==='X'?'🤝':real||'VS'}</div>
         <div class="team-block"><div class="team-flag">${flag(m.v)}</div><div class="team-name-big">${m.v}</div></div>
       </div>
-      <div class="result-row">
-        <div class="result-label">Resultado:</div>
-        <div class="result-btns">${rBtns}</div>
-        ${real ? `<span style="font-size:0.7rem;color:var(--green);font-weight:700;margin-left:4px">✓ Registrado</span>` : ''}
-      </div>
+      <div class="result-row">${rBtns}</div>
       <div class="preds-area">
         <div class="preds-title">Predicciones de la familia</div>
         <div class="preds-grid">${predsHtml}</div>
