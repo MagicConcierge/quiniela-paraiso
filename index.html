@@ -418,34 +418,42 @@ function getActiveUsers() {
   return [currentUser, ...extras];
 }
 
+// Only Rafa and Javier can set real results
+const RESULT_ADMINS = ["Rafa", "Javier"];
+function canSetResult() { return RESULT_ADMINS.includes(currentUser); }
+
 function canActAs(name) {
   return getActiveUsers().includes(name);
 }
 
-// Build result buttons: [Local] [Empate] [Visitante] aligned under teams
+// Build result buttons: [Local] [Empate] [Visitante] — only admins can click
 function buildResultBtns(phId, mi, real, localTeam, visTeam) {
-  const tog = (v) => real === v ? '' : v; // toggle off if already selected
+  const admin = canSetResult();
+  const tog = (v) => real === v ? '' : v;
+  const btn = (val, content, cls) => admin
+    ? `<button class="result-btn ${real===val?cls:''}" onclick="window.setReal('${phId}',${mi},'${tog(val)}')">${content}</button>`
+    : `<div class="result-btn ${real===val?cls:''}" style="cursor:default;opacity:${real===val?1:0.35}">${content}</div>`;
   return `
-    <button class="result-btn ${real==='1'?'active-1':''}" onclick="window.setReal('${phId}',${mi},'${tog('1')}')">${flag(localTeam)} Gana</button>
-    <button class="result-btn-empate ${real==='X'?'active-X':''}" onclick="window.setReal('${phId}',${mi},'${tog('X')}')">🤝<br>Empate</button>
-    <button class="result-btn ${real==='2'?'active-2':''}" onclick="window.setReal('${phId}',${mi},'${tog('2')}')">${flag(visTeam)} Gana</button>
+    ${btn('1', `${flag(localTeam)} Gana`, 'active-1')}
+    <button class="result-btn-empate ${real==='X'?'active-X':''}" ${admin?`onclick="window.setReal('${phId}',${mi},'${tog('X')}')"`:''} style="${!admin?'cursor:default;opacity:'+(real==='X'?1:0.35):''}">🤝<br>Empate</button>
+    ${btn('2', `${flag(visTeam)} Gana`, 'active-2')}
   `;
 }
 
-// Build pred button with emoji+label
-function buildPredBtn(phId, mi, name, val, isEditable) {
+// Build pred button with team flags
+function buildPredBtn(phId, mi, name, val, isEditable, localTeam, visTeam) {
   const display = {
-    "1":  { icon:"🏠", label:"Local" },
-    "X":  { icon:"🤝", label:"Empate" },
-    "2":  { icon:"✈️", label:"Visita" },
-    "":   { icon:"❓", label:"Elegir" },
+    "1": { icon: flag(localTeam), label: (localTeam||"").substring(0,7) },
+    "X": { icon: "🤝",           label: "Empate" },
+    "2": { icon: flag(visTeam),  label: (visTeam||"").substring(0,7) },
+    "":  { icon: "❓",           label: "Elegir" },
   };
   const d = display[val] || display[""];
   const inner = `<span class="pb-icon">${d.icon}</span><span class="pb-label">${d.label}</span>`;
   if (isEditable) {
     return `<button class="pred-btn-big ${val?'sel-'+val:''}" onclick="window.cyclePred('${phId}',${mi},'${name}')">${inner}</button>`;
   } else {
-    return `<div class="pred-btn-big other ${val?'sel-'+val:''}" style="cursor:default;${!val?'opacity:0.25;border-style:dashed':''}">${val ? inner : '<span class="pb-icon">·</span>'}</div>`;
+    return `<div class="pred-btn-big other ${val?'sel-'+val:''}" style="cursor:default;${!val?'opacity:0.25;border-style:dashed':''}">${val ? inner : '<span class="pb-icon" style="opacity:0.3">·</span>'}</div>`;
   }
 }
 
@@ -783,7 +791,7 @@ function renderPhase(ph) {
         return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
           ${correct ? '<span class="correct-star">⭐</span>' : ''}
           <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
-          ${buildPredBtn(ph.id, i, n, v, canEdit)}
+          ${buildPredBtn(ph.id, i, n, v, canEdit, m.l, m.v)}
           <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
         </div>`;
       }).join("");
@@ -1002,7 +1010,7 @@ async function renderHoy() {
       return `<div class="pred-item ${isMe?'is-me':''} ${correct?'correct':''}">
         ${correct ? '<span class="correct-star">⭐</span>' : ''}
         <div class="pred-name ${isMe?'is-me':''}">${n}${isProxy?' ✏️':''}</div>
-        ${buildPredBtn(ph.id, i, n, v, canEdit)}
+        ${buildPredBtn(ph.id, i, n, v, canEdit, m.l, m.v)}
         <div class="pred-pts ${correct?'earned':''}">${pts||" "}</div>
       </div>`;
     }).join("");
@@ -1109,6 +1117,7 @@ window.cyclePred = (phId, mi, targetName) => {
 };
 
 window.setReal = (phId, mi, val) => {
+  if (!canSetResult()) return; // only Rafa and Javier
   setSyncStatus("syncing");
   set(ref(db, `quiniela/${phId}/${mi}/real`), val || null)
     .then(() => {
