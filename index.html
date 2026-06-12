@@ -847,43 +847,57 @@ function renderMedallero() {
   const panel = document.getElementById("panel-medallero");
   if (!panel) return;
 
-  const totals = getAllTotals();
-  const sorted = totals.map((v, i) => ({v, i, name: MEMBERS[i]})).sort((a, b) => b.v - a.v);
-
-  // Total partidos jugados (con resultado)
+  // Count only matches with a real result registered
   let totalJugados = 0, totalAciertos = 0;
   PHASES.forEach(ph => ph.matches.forEach((_, mi) => {
     const m = getMData(ph.id, mi);
-    if (m.real) { totalJugados++; MEMBERS.forEach(n => { if (m.preds && m.preds[n] === m.real) totalAciertos++; }); }
+    if (m.real) {
+      totalJugados++;
+      MEMBERS.forEach(n => { if (m.preds && m.preds[n] === m.real) totalAciertos++; });
+    }
   }));
+
+  // Show empty state if no real results yet
+  if (totalJugados === 0) {
+    panel.innerHTML = `<div class="medallero-wrap">
+      <div class="medallero-title">🏅 Medallero Familiar</div>
+      <div style="text-align:center;padding:3rem 1rem">
+        <div style="font-size:3rem;margin-bottom:0.75rem">⏳</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:6px">Aún no hay partidos jugados</div>
+        <div style="font-size:0.82rem;color:var(--muted)">El medallero aparecerá cuando Rafa o Javier<br>registren el resultado del primer partido.</div>
+      </div>
+    </div>`;
+    return;
+  }
+
+  // Totals based only on played matches (getAllTotals already checks m.real)
+  const totals = getAllTotals();
+  const sorted = totals.map((v, i) => ({v, i, name: MEMBERS[i]})).sort((a, b) => b.v - a.v);
 
   const avatarColors = ["#e74c3c","#3498db","#2ecc71","#9b59b6","#f39c12","#1abc9c","#e67e22","#e91e63","#00bcd4","#8bc34a","#ff5722"];
   const getColor = (i) => avatarColors[i % avatarColors.length];
   const getInitial = (name) => name[0].toUpperCase();
 
-  // Top 3 podium — order: 2nd, 1st, 3rd visually
+  // Podium top 3 — visual order: 2nd, 1st, 3rd
   const top = sorted.slice(0, 3);
-  const podiumOrder = top.length >= 3 ? [top[1], top[0], top[2]] : top.length === 2 ? [top[1], top[0]] : [top[0]];
-  const podiumBase = ["podium-base-2","podium-base-1","podium-base-3"];
-  const podiumPos = top.length >= 3 ? [1,0,2] : [1,0]; // index in top[] for each visual slot
-  const podiumNums = ["2","1","3"];
+  const podiumOrder = top.length >= 3 ? [top[1], top[0], top[2]]
+                    : top.length === 2 ? [top[1], top[0]] : [top[0]];
+  const podiumBase   = ["podium-base-2","podium-base-1","podium-base-3"];
   const podiumEmojis = ["🥈","🥇","🥉"];
 
   const podiumHtml = podiumOrder.map((p, vi) => {
     if (!p) return "";
-    const origPos = top.indexOf(p); // 0,1,2
-    const baseClass = top.length >= 3 ? podiumBase[vi] : podiumBase[vi];
     const isMe = p.name === currentUser;
     return `<div class="podium-slot">
       <div class="podium-avatar" style="background:${getColor(p.i)};${isMe?'box-shadow:0 0 0 3px var(--gold),0 4px 16px rgba(0,0,0,0.25)':''}">${getInitial(p.name)}</div>
       <div class="podium-name">${p.name}${isMe?' 👈':''}</div>
       <div class="podium-pts-label">${p.v}</div>
       <div class="podium-pts-sub">pts</div>
-      <div class="podium-base ${baseClass}">${podiumEmojis[vi]}</div>
+      <div class="podium-base ${podiumBase[vi]}">${podiumEmojis[vi]}</div>
     </div>`;
   }).join("");
 
-  // Rest (4th+)
+  // Rest 4th+
   const restHtml = sorted.slice(3).map((p, ri) => {
     const isMe = p.name === currentUser;
     return `<div class="rest-item ${isMe?'is-me':''}">
@@ -894,22 +908,21 @@ function renderMedallero() {
     </div>`;
   }).join("");
 
-  // My position
   const myRank = sorted.findIndex(s => s.name === currentUser) + 1;
-  const myPts = totals[MEMBERS.indexOf(currentUser)];
+  const myPts  = totals[MEMBERS.indexOf(currentUser)];
   const leader = sorted[0];
-  const diff = leader.v - myPts;
+  const diff   = leader.v - myPts;
 
   const statsHtml = `<div class="medallero-stats">
     <div class="stat-card">
       <div class="stat-label">Tu posición</div>
       <div class="stat-value">#${myRank} de ${MEMBERS.length}</div>
-      <div class="stat-sub">${myPts} puntos acumulados</div>
+      <div class="stat-sub">${myPts} pts reales</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">${diff === 0 ? '¡Vas primero! 🏆' : 'Al líder te faltan'}</div>
-      <div class="stat-value">${diff === 0 ? myPts+'pts' : diff+' pts'}</div>
-      <div class="stat-sub">${diff === 0 ? 'Sigue así' : `${leader.name} lleva ${leader.v} pts`}</div>
+      <div class="stat-value">${diff === 0 ? myPts+' pts' : diff+' pts'}</div>
+      <div class="stat-sub">${diff === 0 ? 'Sigue así 💪' : leader.name+' lleva '+leader.v+' pts'}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Partidos jugados</div>
@@ -925,11 +938,15 @@ function renderMedallero() {
 
   panel.innerHTML = `<div class="medallero-wrap">
     <div class="medallero-title">🏅 Medallero Familiar</div>
+    <div style="font-size:0.7rem;color:var(--muted);text-align:center;margin-bottom:1rem">
+      Basado en ${totalJugados} partido${totalJugados!==1?'s':''} jugado${totalJugados!==1?'s':''}
+    </div>
     <div class="podium">${podiumHtml}</div>
     ${sorted.length > 3 ? `<div class="rest-list">${restHtml}</div>` : ''}
     ${statsHtml}
   </div>`;
 }
+
 
 // ── HOY ──────────────────────────────────────────────────────────────────────
 // Current date in Mexico City time (UTC-6)
